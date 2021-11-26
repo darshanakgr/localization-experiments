@@ -2,7 +2,7 @@ import open3d
 
 
 def main():
-    pcd_file = "data/DatasetV1/lidar_1636428659366014800.pcd"
+    pcd_file = "data/DatasetV2/Primary/06/lidar_1637299401488642900.pcd"
     pcd = open3d.read_point_cloud(pcd_file)
     open3d.draw_geometries([pcd])
 

@@ -34,7 +34,7 @@ colorizer = rs.colorizer()
 
 cv2.namedWindow("LiDAR Viewer", cv2.WINDOW_AUTOSIZE)
 cv2.resizeWindow("LiDAR Viewer", w, h)
-out_dir = "data/DatasetV1"
+out_dir = "data/DatasetV1/Secondary/05"
 
 record_start_time = time()
 try:
@@ -69,10 +69,12 @@ try:
         if key == ord("s"):
             # Saving images
             timestamp = time_ns()
-            np.save("%s/lidar_%d.npy" % (out_dir, timestamp), vertices)
-            np.save("%s/depth_map_%d.npy" % (out_dir, timestamp), depth_image)
-            cv2.imwrite("%s/rgb_image_%d.png" % (out_dir, timestamp), color_image)
-            cv2.imwrite("%s/depth_map_%d.png" % (out_dir, timestamp), depth_colormap)
+            location, height, v_angle, h_angle = input("location, height, v_angle, h_angle:").split(" ")
+            suffix = f"{time_ns()}_{location}_{height}_{v_angle}_{h_angle}"
+            np.save("%s/lidar_%s.npy" % (out_dir, suffix), vertices)
+            np.save("%s/depth_map_%s.npy" % (out_dir, suffix), depth_image)
+            cv2.imwrite("%s/rgb_image_%s.png" % (out_dir, suffix), color_image)
+            cv2.imwrite("%s/depth_map_%s.png" % (out_dir, suffix), depth_colormap)
 
         if key in (27, ord("q")) or cv2.getWindowProperty("LiDAR Viewer", cv2.WND_PROP_AUTOSIZE) < 0:
             print("Duration:", (time() - record_start_time) / 60)

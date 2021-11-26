@@ -1,4 +1,8 @@
+import copy
+import math
+import os
 import numpy as np
+import open3d
 
 
 def convert_to_pcd(pc, output_file):
@@ -24,3 +28,98 @@ def convert_to_pcd(pc, output_file):
     file.close()
 
 
+def draw_registration_result(source, target, transformation):
+    source_temp = copy.deepcopy(source)
+    target_temp = copy.deepcopy(target)
+    # open3d.estimate_normals(source_temp)
+    # open3d.estimate_normals(target_temp)
+    target_temp.paint_uniform_color([1, 0.706, 0])
+    source_temp.paint_uniform_color([0, 0.651, 0.929])
+    source_temp.transform(transformation)
+    open3d.visualization.draw_geometries([source_temp, target_temp])
+
+
+# def execute_global_registration(src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold):
+#     result = open3d.registration_ransac_based_on_feature_matching(
+#         src_keypts, tgt_keypts, src_desc, tgt_desc,
+#         distance_threshold,
+
+#         open3d.TransformationEstimationPointToPoint(False), 4,
+#         [open3d.CorrespondenceCheckerBasedOnEdgeLength(0.9),
+#          open3d.CorrespondenceCheckerBasedOnDistance(distance_threshold)],
+#         open3d.RANSACConvergenceCriteria(4000000, 500))
+#     return result
+
+def execute_global_registration(src_keypts, tgt_keypts, src_desc, tgt_desc, voxel_size):
+    distance_threshold = voxel_size * 1.5
+    iterations = int(len(src_keypts.points) * len(tgt_keypts.points) * 1.2)
+    print(f"Iterations: {iterations}\t", end="")
+    result = open3d.registration_ransac_based_on_feature_matching(
+        src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold,
+        open3d.TransformationEstimationPointToPoint(False),
+        4, [
+            open3d.CorrespondenceCheckerBasedOnEdgeLength(0.9),
+            open3d.CorrespondenceCheckerBasedOnDistance(distance_threshold)
+        ],
+        open3d.RANSACConvergenceCriteria(iterations, 5000)
+    )
+    return result
+
+# open3d.CorrespondenceCheckerBasedOnNormal(np.radians(10))
+
+
+def read_pcd_file(file_path, voxel_size=0.03):
+    pcd = open3d.read_point_cloud(file_path)
+    pcd = open3d.voxel_down_sample(pcd, voxel_size)
+    return pcd
+
+
+def read_features_file(file_path):
+    data = np.load(file_path)
+    features = open3d.registration.Feature()
+    features.data = data["features"].T
+    keypts = open3d.PointCloud()
+    keypts.points = open3d.Vector3dVector(data["keypts"])
+    scores = data["scores"]
+    return keypts, features, scores
+
+
+def read_pcd_and_features(file_path, feature_dir, voxel_size, random_points=0):
+    pcd = open3d.read_point_cloud(file_path)
+    pcd = open3d.voxel_down_sample(pcd, voxel_size)
+    feature_file = os.path.join(feature_dir, str(voxel_size), file_path.split("/")[-1].replace(".pcd", ".npz"))
+    data = np.load(feature_file)
+    scores = data["scores"]
+    if random_points > 0:
+        # indices = np.where(scores > 0.7)[0]
+        indices = np.random.choice(data["features"].shape[0], random_points, replace=False)
+        features = open3d.registration.Feature()
+        features.data = data["features"][indices, :].T
+        keypts = open3d.PointCloud()
+        keypts.points = open3d.Vector3dVector(data["keypts"][indices, :])
+        return pcd, keypts, features, scores
+    else:
+        features = open3d.registration.Feature()
+        features.data = data["features"].T
+        keypts = open3d.PointCloud()
+        keypts.points = open3d.Vector3dVector(data["keypts"])
+        return pcd, keypts, features, scores
+
+
+def get_angles_from_transformation(t):
+    rx = math.degrees(math.atan2(t[2][1], t[2][2]))
+    ry = math.degrees(math.atan2(-t[2][0], math.sqrt(t[2][1] ** 2 + t[2][2] ** 2)))
+    rz = math.degrees(math.atan2(t[1][0], t[0][0]))
+    return np.array([rx, ry, rz])
+
+
+def make_point_cloud(pts):
+    pcd = open3d.geometry.PointCloud()
+    pcd.points = open3d.utility.Vector3dVector(pts)
+    return pcd
+
+
+def remove_color(pcd_file, voxel_size=0.03):
+    pcd = read_pcd_file(pcd_file, voxel_size)
+    pcd = make_point_cloud(np.asarray(pcd.points))
+    return pcd
