@@ -1,6 +1,7 @@
 import open3d
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 
 def rgb(r, g, b):
@@ -93,6 +94,35 @@ def registration(src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold)
     return result
 
 
+def fast_global_registration(src_keypts, tgt_keypts, src_desc, tgt_desc, voxel_size):
+    distance_threshold = 0.05
+    result = open3d.registration.registration_fast_based_on_feature_matching(
+        src_keypts, tgt_keypts, src_desc, tgt_desc,
+        open3d.registration.FastGlobalRegistrationOption(maximum_correspondence_distance=distance_threshold)
+    )
+    return result
+
+
+def print_registration_result(src_keypts, tgt_keypts, result_ransac, end="\n"):
+    to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
+    to_print += f"No of matches: {len(result_ransac.correspondence_set)}\t"
+    to_print += f"Inlier RMSE: {result_ransac.inlier_rmse}"
+    print(to_print, end=end)
+
+
+def create_camera(camera_width, color):
+    points = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]])
+    points = points * camera_width
+    points = points - camera_width / 2
+    lines = [[0, 1], [0, 2], [1, 3], [2, 3], [4, 5], [4, 6], [5, 7], [6, 7], [0, 4], [1, 5], [2, 6], [3, 7]]
+    colors = [color for i in range(len(lines))]
+    line_set = open3d.geometry.LineSet()
+    line_set.points = open3d.utility.Vector3dVector(points)
+    line_set.lines = open3d.utility.Vector2iVector(lines)
+    line_set.colors = open3d.utility.Vector3dVector(colors)
+    return line_set
+
+
 def main():
     cell_size = 3
 
@@ -103,54 +133,72 @@ def main():
     pcd = open3d.voxel_down_sample(pcd, 0.1)
     pcd.paint_uniform_color(rgb(149, 165, 166))
 
+    points = np.asarray(pcd.points)
+    filter = np.logical_and(points[:, 1] > 1, points[:, 1] < 1.05)
+    x = points[filter][:, 0]
+    y = points[filter][:, 2]
+
     grid_points = get_grid(pcd, cell_size)
     grid = make_pcd(grid_points)
 
     for tgt_file_name in os.listdir("data/DatasetV2/Secondary/04/"):
-        print(f"Matching -> {'lidar_1637299421190934300'} & {tgt_file_name}")
         # src_file = f"data/DatasetV2/Secondary/03/{tgt_file_name}"
         highest_matches, highest_p = 0, None
+        t = None
         for p in grid_points:
             src_feature_file = os.path.join("data/Features/0.1/", tgt_file_name.replace("pcd", "npz"))
-            src_keypts, src_features, src_scores = get_features(src_feature_file)
-            src_keypts.paint_uniform_color([1, 0.706, 0])
 
+            src_keypts, src_features, src_scores = get_features(src_feature_file)
             tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, p, cell_size)
 
             if len(tgt_keypts.points) < 2000:
                 continue
 
+            src_keypts.paint_uniform_color([1, 0.706, 0])
             tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
 
             result_ransac = registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
-            to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
-            to_print += f"No of matches: {len(result_ransac.correspondence_set)}\t"
-            to_print += f"Inlier RMSE: {result_ransac.inlier_rmse}"
-            print(to_print)
+            print_registration_result(src_keypts, tgt_keypts, result_ransac)
 
             if highest_matches < len(result_ransac.correspondence_set):
                 highest_matches = len(result_ransac.correspondence_set)
                 highest_p = p
+                t = result_ransac.transformation
 
             # src_keypts.transform(result_ransac.transformation)
             #
             # open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
         if highest_p is not None:
             src_feature_file = os.path.join("data/Features/0.1/", tgt_file_name.replace("pcd", "npz"))
-            src_keypts, src_features, src_scores = get_features(src_feature_file)
-            src_keypts.paint_uniform_color([1, 0.706, 0])
 
+            src_keypts, src_features, src_scores = get_features(src_feature_file)
             tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, highest_p, cell_size)
+
+            src_keypts.paint_uniform_color([1, 0.706, 0])
             tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
 
-            result_ransac = registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
-            to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
-            to_print += f"No of matches: {len(result_ransac.correspondence_set)}\t"
-            to_print += f"Inlier RMSE: {result_ransac.inlier_rmse}"
-            print(to_print)
+            src_camera = create_camera(camera_width=0.25, color=[1, 0, 0])
 
-            src_keypts.transform(result_ransac.transformation)
-            open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
+            result = open3d.registration.registration_icp(
+                src_keypts, pcd, 0.05, t, open3d.registration.TransformationEstimationPointToPoint()
+            )
+
+            cp = np.matmul(result.transformation, [[0], [0], [0], [1]])
+
+            print(cp)
+
+            plt.scatter(x, y, c="green")
+            plt.scatter([cp[0]], cp[2], c="red")
+            plt.xlim(-6, 6)
+            plt.ylim(-6, 6)
+            plt.gca().set_aspect('equal', adjustable='box')
+            plt.draw()
+            plt.show()
+
+            # src_keypts.transform(result_ransac.transformation)
+            src_keypts.transform(result.transformation)
+            src_camera.transform(result.transformation)
+            open3d.visualization.draw_geometries([src_keypts, pcd, src_camera, grid])
 
 
 if __name__ == '__main__':
