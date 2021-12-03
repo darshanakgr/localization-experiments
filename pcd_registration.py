@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 def main():
 
     voxel_size = 0.1
-    secondary_folder = "data/DatasetV2/Secondary/03/"
-    tgt_file = "data/DatasetV2/Primary/06/lidar_1637299401488642900.pcd"
+    secondary_folder = "data/DatasetV2/Secondary/05/"
+    tgt_file = "data/DatasetV2/Primary/10/lidar_1638353640807327100.pcd"
 
     for tgt_file_name in os.listdir(secondary_folder):
         src_file = os.path.join(secondary_folder, tgt_file_name)

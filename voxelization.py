@@ -124,13 +124,13 @@ def create_camera(camera_width, color):
 
 
 def main():
-    cell_size = 3
+    cell_size = 2
 
-    pcd_file = "D:/Projects/Research/localization_experiments/data/DatasetV2/Primary/07/lidar_1637299421190934300.pcd"
-    feature_file = "D:/Projects/Research/localization_experiments/data/Features/0.1/lidar_1637299421190934300.npz"
+    pcd_file = "data/DatasetV2/Primary/10/lidar_1638353640807327100.pcd"
+    feature_file = "data/Features/0.1/lidar_1638353640807327100.npz"
 
     pcd = open3d.read_point_cloud(pcd_file)
-    pcd = open3d.voxel_down_sample(pcd, 0.1)
+    pcd = open3d.voxel_down_sample(pcd, 0.03)
     pcd.paint_uniform_color(rgb(149, 165, 166))
 
     points = np.asarray(pcd.points)
@@ -141,13 +141,13 @@ def main():
     grid_points = get_grid(pcd, cell_size)
     grid = make_pcd(grid_points)
 
-    for tgt_file_name in os.listdir("data/DatasetV2/Secondary/04/"):
+    for src_file_name in os.listdir("data/DatasetV2/Secondary/05/"):
         # src_file = f"data/DatasetV2/Secondary/03/{tgt_file_name}"
+        src_feature_file = os.path.join("data/Features/0.1/", src_file_name.replace("pcd", "npz"))
         highest_matches, highest_p = 0, None
         t = None
-        for p in grid_points:
-            src_feature_file = os.path.join("data/Features/0.1/", tgt_file_name.replace("pcd", "npz"))
 
+        for p in grid_points:
             src_keypts, src_features, src_scores = get_features(src_feature_file)
             tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, p, cell_size)
 
@@ -165,12 +165,10 @@ def main():
                 highest_p = p
                 t = result_ransac.transformation
 
-            # src_keypts.transform(result_ransac.transformation)
-            #
-            # open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
-        if highest_p is not None:
-            src_feature_file = os.path.join("data/Features/0.1/", tgt_file_name.replace("pcd", "npz"))
+            src_keypts.transform(result_ransac.transformation)
+            open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
 
+        if highest_p is not None:
             src_keypts, src_features, src_scores = get_features(src_feature_file)
             tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, highest_p, cell_size)
 
@@ -184,8 +182,6 @@ def main():
             )
 
             cp = np.matmul(result.transformation, [[0], [0], [0], [1]])
-
-            print(cp)
 
             plt.scatter(x, y, c="green")
             plt.scatter([cp[0]], cp[2], c="red")
