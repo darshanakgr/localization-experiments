@@ -1,6 +1,5 @@
 import numpy as np
 import open3d
-from open3d.cpu.pybind.geometry import PointCloud
 
 
 def unit_vector(vector):
@@ -129,24 +128,24 @@ def main():
     #
     #     open3d.visualization.draw_geometries([src_pcd, tgt_pcd])
 
-    src_pcd: PointCloud = open3d.io.read_point_cloud("data/DatasetV2/Primary/01/lidar_1636437066490883500.pcd")
-    tgt_pcd: PointCloud = open3d.io.read_point_cloud("data/DatasetV2/Secondary/00/lidar_1636435283264391400.pcd")
-
-    src_pcd = src_pcd.voxel_down_sample(VOXEL_SIZE)
-    tgt_pcd = tgt_pcd.voxel_down_sample(VOXEL_SIZE)
-
-    src_pcd.paint_uniform_color([1, 0.706, 0])
-    tgt_pcd.paint_uniform_color([0, 0.651, 0.929])
-
-    # src_keypts, src_features, src_scores = get_features(f"data/Features/{VOXEL_SIZE}/lidar_1636437066490883500.npz")
-    # tgt_keypts, tgt_features, tgt_scores = get_features(f"data/Features/{VOXEL_SIZE}/lidar_1636435283264391400.npz")
+    # src_pcd = open3d.io.read_point_cloud("data/DatasetV2/Primary/01/lidar_1636437066490883500.pcd")
+    # tgt_pcd = open3d.io.read_point_cloud("data/DatasetV2/Secondary/00/lidar_1636435283264391400.pcd")
+    #
+    # src_pcd = src_pcd.voxel_down_sample(VOXEL_SIZE)
+    # tgt_pcd = tgt_pcd.voxel_down_sample(VOXEL_SIZE)
+    #
+    # src_pcd.paint_uniform_color([1, 0.706, 0])
+    # tgt_pcd.paint_uniform_color([0, 0.651, 0.929])
+    #
+    # src_keypts, src_features, src_scores = get_features(f"data/FeaturesV1/{VOXEL_SIZE}/lidar_1636437066490883500.npz")
+    # tgt_keypts, tgt_features, tgt_scores = get_features(f"data/FeaturesV1/{VOXEL_SIZE}/lidar_1636435283264391400.npz")
     #
     # result_ransac = registration(src_keypts, tgt_keypts, src_features, tgt_features, VOXEL_SIZE)
     # src_pcd.transform(result_ransac.transformation)
     # print(result_ransac)
-    #
+
     # open3d.visualization.draw_geometries([src_pcd, tgt_pcd])
-    #
+
     # # src_pcd, tgt_pcd, source_fpfh, target_fpfh = prepare_dataset(src_pcd, tgt_pcd, VOXEL_SIZE)
     # # result_ransac = registration(src_pcd, tgt_pcd, source_fpfh, target_fpfh, VOXEL_SIZE)
     # # src_pcd.transform(result_ransac.transformation)
@@ -190,8 +189,8 @@ def main():
     #
     # open3d.visualization.draw_geometries([src_pcd, tgt_pcd])
 
-    src_pcd.estimate_normals(search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=30))
-    tgt_pcd.estimate_normals(search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=30))
+    # src_pcd.estimate_normals(search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=30))
+    # tgt_pcd.estimate_normals(search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=30))
     # open3d.visualization.draw_geometries([src_pcd], point_show_normal=True)
 
     # pcd_tree = open3d.geometry.KDTreeFlann(src_pcd)
@@ -210,21 +209,21 @@ def main():
     # src_pcd.colors[1500] = [1, 0, 0]
     # np.asarray(src_pcd.colors)[idx[1:], :] = [0, 0, 1]
 
-    src_features = get_features_arr(f"data/Features/{VOXEL_SIZE}/lidar_1636437066490883500.npz")
-    tgt_features = get_features_arr(f"data/Features/{VOXEL_SIZE}/lidar_1636435283264391400.npz")
-
-    src_pcd, src_features = remove_redundant_points(src_pcd, src_features)
-    tgt_pcd, tgt_features = remove_redundant_points(tgt_pcd, tgt_features)
-
-    open3d.visualization.draw_geometries([src_pcd])
-    open3d.visualization.draw_geometries([tgt_pcd])
-
-    print(f":: Feature Vectors {src_features.num()} {tgt_features.num()}")
-    result_ransac = registration(src_pcd, tgt_pcd, src_features, tgt_features, VOXEL_SIZE)
-    src_pcd.transform(result_ransac.transformation)
-    print(result_ransac)
-
-    open3d.visualization.draw_geometries([src_pcd, tgt_pcd])
+    # src_features = get_features_arr(f"data/Features/{VOXEL_SIZE}/lidar_1636437066490883500.npz")
+    # tgt_features = get_features_arr(f"data/Features/{VOXEL_SIZE}/lidar_1636435283264391400.npz")
+    #
+    # src_pcd, src_features = remove_redundant_points(src_pcd, src_features)
+    # tgt_pcd, tgt_features = remove_redundant_points(tgt_pcd, tgt_features)
+    #
+    # open3d.visualization.draw_geometries([src_pcd])
+    # open3d.visualization.draw_geometries([tgt_pcd])
+    #
+    # print(f":: Feature Vectors {src_features.num()} {tgt_features.num()}")
+    # result_ransac = registration(src_pcd, tgt_pcd, src_features, tgt_features, VOXEL_SIZE)
+    # src_pcd.transform(result_ransac.transformation)
+    # print(result_ransac)
+    #
+    # open3d.visualization.draw_geometries([src_pcd, tgt_pcd])
 
 
 if __name__ == '__main__':

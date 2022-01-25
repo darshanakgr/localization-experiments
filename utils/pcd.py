@@ -56,11 +56,11 @@ def execute_global_registration(src_keypts, tgt_keypts, src_desc, tgt_desc, voxe
     result = open3d.registration_ransac_based_on_feature_matching(
         src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold,
         open3d.TransformationEstimationPointToPoint(False),
-        4, [
+        3, [
             open3d.CorrespondenceCheckerBasedOnEdgeLength(0.9),
             open3d.CorrespondenceCheckerBasedOnDistance(distance_threshold)
         ],
-        open3d.RANSACConvergenceCriteria(4000000, 5000)
+        open3d.RANSACConvergenceCriteria(4000000, 1000)
     )
     return result
 

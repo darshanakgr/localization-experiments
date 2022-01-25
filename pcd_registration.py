@@ -15,8 +15,8 @@ def main():
         src_file = os.path.join(secondary_folder, tgt_file_name)
 
         # Load the descriptors and estimate the transformation parameters using RANSAC
-        src_pcd, src_keypts, src_features, src_scores = pcd.read_pcd_and_features(src_file, "data/Features", voxel_size)
-        tgt_pcd, tgt_keypts, tgt_features, tgt_scores = pcd.read_pcd_and_features(tgt_file, "data/Features", voxel_size)
+        src_pcd, src_keypts, src_features, src_scores = pcd.read_pcd_and_features(src_file, "data/FeaturesV6", voxel_size)
+        tgt_pcd, tgt_keypts, tgt_features, tgt_scores = pcd.read_pcd_and_features(tgt_file, "data/FeaturesV6", voxel_size)
 
         # open3d.geometry.estimate_normals(
         #     src_pcd, search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.25, max_nn=30),

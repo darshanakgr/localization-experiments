@@ -48,6 +48,8 @@ try:
         if not depth_frame or not color_frame:
             continue
 
+
+
         # Convert images to numpy arrays
         depth_image = np.asanyarray(depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())

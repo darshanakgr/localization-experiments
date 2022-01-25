@@ -90,7 +90,7 @@ def registration(src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold)
         open3d.TransformationEstimationPointToPoint(False), 3,
         [open3d.CorrespondenceCheckerBasedOnEdgeLength(0.9),
          open3d.CorrespondenceCheckerBasedOnDistance(distance_threshold)],
-        open3d.RANSACConvergenceCriteria(4000000, 600))
+        open3d.RANSACConvergenceCriteria(40000000, 600))
     return result
 
 
@@ -126,8 +126,9 @@ def create_camera(camera_width, color):
 def main():
     cell_size = 2
 
-    pcd_file = "data/DatasetV2/Primary/10/lidar_1638353640807327100.pcd"
-    feature_file = "data/Features/0.1/lidar_1638353640807327100.npz"
+    pcd_file = "data/DatasetV2/Primary/06/lidar_1637299401488642900.pcd"
+    # pcd_file = "data/DatasetV2/Primary/10/lidar_1638353640807327100.pcd"
+    feature_file = "data/FeaturesV1/0.1/lidar_1637299401488642900.npz"
 
     pcd = open3d.read_point_cloud(pcd_file)
     pcd = open3d.voxel_down_sample(pcd, 0.03)
@@ -141,9 +142,9 @@ def main():
     grid_points = get_grid(pcd, cell_size)
     grid = make_pcd(grid_points)
 
-    for src_file_name in os.listdir("data/DatasetV2/Secondary/05/"):
+    for src_file_name in os.listdir("data/DatasetV2/Secondary/03/"):
         # src_file = f"data/DatasetV2/Secondary/03/{tgt_file_name}"
-        src_feature_file = os.path.join("data/Features/0.1/", src_file_name.replace("pcd", "npz"))
+        src_feature_file = os.path.join("data/FeaturesV1/0.1/", src_file_name.replace("pcd", "npz"))
         highest_matches, highest_p = 0, None
         t = None
 
@@ -165,8 +166,8 @@ def main():
                 highest_p = p
                 t = result_ransac.transformation
 
-            src_keypts.transform(result_ransac.transformation)
-            open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
+            # src_keypts.transform(result_ransac.transformation)
+            # open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
 
         if highest_p is not None:
             src_keypts, src_features, src_scores = get_features(src_feature_file)
@@ -191,8 +192,8 @@ def main():
             plt.draw()
             plt.show()
 
-            # src_keypts.transform(result_ransac.transformation)
             src_keypts.transform(result.transformation)
+            # src_keypts.transform(result.transformation)
             src_camera.transform(result.transformation)
             open3d.visualization.draw_geometries([src_keypts, pcd, src_camera, grid])
 
