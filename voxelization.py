@@ -89,7 +89,8 @@ def registration(src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold)
         distance_threshold,
         open3d.TransformationEstimationPointToPoint(False), 3,
         [open3d.CorrespondenceCheckerBasedOnEdgeLength(0.9),
-         open3d.CorrespondenceCheckerBasedOnDistance(distance_threshold)],
+         open3d.CorrespondenceCheckerBasedOnDistance(distance_threshold),
+         open3d.CorrespondenceCheckerBasedOnNormal(normal_angle_threshold=np.deg2rad(30.0))],
         open3d.RANSACConvergenceCriteria(40000000, 600))
     return result
 

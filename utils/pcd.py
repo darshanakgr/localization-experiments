@@ -120,3 +120,7 @@ def remove_color(pcd_file, voxel_size=0.03):
     pcd = read_pcd_file(pcd_file, voxel_size)
     pcd = make_point_cloud(np.asarray(pcd.points))
     return pcd
+
+
+def rgb(r, g, b):
+    return r / 255.0, g / 255.0, b / 255.0
