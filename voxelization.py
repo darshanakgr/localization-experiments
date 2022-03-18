@@ -39,8 +39,9 @@ def filter_indices(points, p, cell_size):
 def get_features(feature_file):
     data = np.load(feature_file)
     scores = data["scores"]
-    features = open3d.registration.Feature()
-    features.data = data["features"].T
+    # features = open3d.registration.Feature()
+    # features.data = data["features"].T
+    features = data["features"].T
     keypts = open3d.geometry.PointCloud()
     keypts.points = open3d.utility.Vector3dVector(data["keypts"])
     return keypts, features, scores
@@ -55,8 +56,9 @@ def get_cell_features(feature_file, p, cell_size):
 
     # f = np.random.choice(f, 500, replace=False)
 
-    features = open3d.registration.Feature()
-    features.data = data["features"][f].T
+    # features = open3d.registration.Feature()
+    # features.data = data["features"][f].T
+    features = data["features"][f].T
 
     keypts = open3d.geometry.PointCloud()
     keypts.points = open3d.utility.Vector3dVector(data["keypts"][f])
@@ -149,54 +151,57 @@ def main():
         highest_matches, highest_p = 0, None
         t = None
 
+        src_keypts, src_features, src_scores = get_features(src_feature_file)
+        src_feature_vector = src_features.min(axis=1)
+        tgt_feature_vectors = []
+
         for p in grid_points:
-            src_keypts, src_features, src_scores = get_features(src_feature_file)
             tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, p, cell_size)
+            tgt_feature_vectors.append(tgt_features.min(axis=1))
 
-            if len(tgt_keypts.points) < 2000:
-                continue
+        tgt_feature_vectors = np.array(tgt_feature_vectors)
+        distances = tgt_feature_vectors - src_feature_vector.reshape(1, -1)
+        distances = np.sum(np.square(distances), axis=1)
+        print(np.argmin(distances))
 
-            src_keypts.paint_uniform_color([1, 0.706, 0])
-            tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
-
-            result_ransac = registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
-            print_registration_result(src_keypts, tgt_keypts, result_ransac)
-
-            if highest_matches < len(result_ransac.correspondence_set):
-                highest_matches = len(result_ransac.correspondence_set)
-                highest_p = p
-                t = result_ransac.transformation
-
-            # src_keypts.transform(result_ransac.transformation)
-            # open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
-
-        if highest_p is not None:
-            src_keypts, src_features, src_scores = get_features(src_feature_file)
-            tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, highest_p, cell_size)
-
-            src_keypts.paint_uniform_color([1, 0.706, 0])
-            tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
-
-            src_camera = create_camera(camera_width=0.25, color=[1, 0, 0])
-
-            result = open3d.registration.registration_icp(
-                src_keypts, pcd, 0.05, t, open3d.registration.TransformationEstimationPointToPoint()
-            )
-
-            cp = np.matmul(result.transformation, [[0], [0], [0], [1]])
-
-            plt.scatter(x, y, c="green")
-            plt.scatter([cp[0]], cp[2], c="red")
-            plt.xlim(-6, 6)
-            plt.ylim(-6, 6)
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.draw()
-            plt.show()
-
-            src_keypts.transform(result.transformation)
-            # src_keypts.transform(result.transformation)
-            src_camera.transform(result.transformation)
-            open3d.visualization.draw_geometries([src_keypts, pcd, src_camera, grid])
+        #     result_ransac = registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
+        #     print_registration_result(src_keypts, tgt_keypts, result_ransac)
+        #
+        #     if highest_matches < len(result_ransac.correspondence_set):
+        #         highest_matches = len(result_ransac.correspondence_set)
+        #         highest_p = p
+        #         t = result_ransac.transformation
+        #
+        #     # src_keypts.transform(result_ransac.transformation)
+        #     # open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
+        #
+        # if highest_p is not None:
+        #     src_keypts, src_features, src_scores = get_features(src_feature_file)
+        #     tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, highest_p, cell_size)
+        #
+        #     src_keypts.paint_uniform_color([1, 0.706, 0])
+        #     tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
+        #
+        #     src_camera = create_camera(camera_width=0.25, color=[1, 0, 0])
+        #
+        #     result = open3d.registration.registration_icp(
+        #         src_keypts, pcd, 0.05, t, open3d.registration.TransformationEstimationPointToPoint()
+        #     )
+        #
+        #     cp = np.matmul(result.transformation, [[0], [0], [0], [1]])
+        #
+        #     plt.scatter(x, y, c="green")
+        #     plt.scatter([cp[0]], cp[2], c="red")
+        #     plt.xlim(-6, 6)
+        #     plt.ylim(-6, 6)
+        #     plt.gca().set_aspect('equal', adjustable='box')
+        #     plt.draw()
+        #     plt.show()
+        #
+        #     src_keypts.transform(result.transformation)
+        #     # src_keypts.transform(result.transformation)
+        #     src_camera.transform(result.transformation)
+        #     open3d.visualization.draw_geometries([src_keypts, pcd, src_camera, grid])
 
 
 if __name__ == '__main__':

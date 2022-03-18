@@ -1,3 +1,5 @@
+import time
+
 import open3d
 import numpy as np
 import math as m
@@ -116,7 +118,10 @@ def move_through_pcd(pcd):
         return False
 
     def capture_pcd(vis):
-        vis.capture_depth_point_cloud("sample.pcd")
+        timestamp = time.time_ns()
+        vis.capture_depth_point_cloud(f"dataset/{timestamp}.pcd")
+        t = get_current_transformation_matrix(vis)
+        np.save(f"dataset/{timestamp}.npy", t)
         return False
 
     key_to_callback = dict()
@@ -127,8 +132,9 @@ def move_through_pcd(pcd):
     key_to_callback[ord("A")] = move_x_forward
     key_to_callback[ord("D")] = move_x_backward
 
-    key_to_callback[ord("J")] = rotate_y_forward
-    key_to_callback[ord("L")] = rotate_y_backward
+    key_to_callback[ord("J")] = rotate_y_backward
+    key_to_callback[ord("L")] = rotate_y_forward
+
     key_to_callback[ord("I")] = rotate_z_forward
     key_to_callback[ord("K")] = rotate_z_backward
 
