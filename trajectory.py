@@ -2,10 +2,16 @@ import time
 
 import open3d
 import numpy as np
-import math as m
+from utils.pcd import get_angles_from_transformation
+
+rotation = [90, 90, -90]
+translation = [0, 1, 0, 0]
 
 
-def rotate_transformation_matrix(T, rx, ry, rz):
+def rotate_transformation_matrix(t, rx, ry, rz):
+    # Convert degrees to radians
+    rx, ry, rz = np.radians(rx), np.radians(ry), np.radians(rz)
+
     RX = np.array([
         [1, 0, 0, 0],
         [0, np.cos(rx), -np.sin(rx), 0],
@@ -27,15 +33,20 @@ def rotate_transformation_matrix(T, rx, ry, rz):
         [0, 0, 0, 1]
     ])
 
-    return np.dot(np.dot(np.dot(T, RZ), RY), RX)
+    return np.dot(np.dot(np.dot(t, RZ), RY), RX)
 
 
-def get_default_transformation_matrix():
+def get_transformation_matrix():
     t = np.identity(4)
-    t[1, 3] = 1
-    t[0, 3] = 0
-    t = rotate_transformation_matrix(t, np.radians(90), np.radians(90), np.radians(-90))
+    t = rotate_transformation_matrix(t, *rotation)
+    t[:, 3] = translation
     return t
+
+
+def set_default_transformation_matrix():
+    global rotation, translation
+    rotation = [90, 90, -90]
+    translation = [0, 1, 0, 0]
 
 
 def get_current_transformation_matrix(vis):
@@ -52,24 +63,24 @@ def change_camera_extrinsic_params(vis, transformation):
 
 
 def move(vis, axis=0, direction=1, step=0.05):
-    t = get_current_transformation_matrix(vis)
-    t[axis, 3] = t[axis, 3] + direction * step
+    translation[axis] = translation[axis] + direction * step
+    t = get_transformation_matrix()
     change_camera_extrinsic_params(vis, t)
 
 
 def rotate(vis, axis=0, direction=1, step=5):
-    t = get_current_transformation_matrix(vis)
+    global rotation, translation
     if axis == 0:
-        rx = np.radians(direction * step)
-        ry, rz = 0, 0
+        rotation[0] = rotation[0] + direction * step
     elif axis == 1:
-        rz = np.radians(direction * step)
-        rx, ry = 0, 0
+        rotation[2] = rotation[2] + direction * step
     else:
-        ry = np.radians(direction * step)
-        rx, rz = 0, 0
+        rotation[1] = rotation[1] + direction * step
 
-    t = rotate_transformation_matrix(t, rx, ry, rz)
+    t = get_transformation_matrix()
+
+    print(np.round(get_angles_from_transformation(t)))
+
     change_camera_extrinsic_params(vis, t)
 
 
@@ -82,7 +93,9 @@ def move_through_pcd(pcd):
     """
 
     def reset_view(vis):
-        change_camera_extrinsic_params(vis, get_default_transformation_matrix())
+        set_default_transformation_matrix()
+        t = get_transformation_matrix()
+        change_camera_extrinsic_params(vis, t)
         return False
 
     def move_x_forward(vis):
@@ -102,11 +115,11 @@ def move_through_pcd(pcd):
         return False
 
     def rotate_y_forward(vis):
-        rotate(vis, 2, 1, 5)
+        rotate(vis, 0, 1, 5)
         return False
 
     def rotate_y_backward(vis):
-        rotate(vis, 2, -1, 5)
+        rotate(vis, 0, -1, 5)
         return False
 
     def rotate_z_forward(vis):
