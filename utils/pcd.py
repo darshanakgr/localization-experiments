@@ -110,6 +110,10 @@ def get_angles_from_transformation(t):
     return np.array([rx, ry, rz])
 
 
+def get_translation_from_transformation(t):
+    return np.array([t[0][3], t[1][3], t[2][3]])
+
+
 def make_point_cloud(pts):
     pcd = open3d.geometry.PointCloud()
     pcd.points = open3d.utility.Vector3dVector(pts)

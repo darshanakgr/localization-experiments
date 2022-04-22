@@ -2,6 +2,9 @@ import open3d
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import pandas as pd
+
+from utils.pcd import get_angles_from_transformation, get_translation_from_transformation
 
 
 def rgb(r, g, b):
@@ -64,11 +67,17 @@ def get_cell_features(feature_file, p, cell_size):
     return keypts, features, scores
 
 
-def get_grid(pcd, cell_size):
+def get_limits(pcd):
     pcd_points = np.asarray(pcd.points)
 
     x_min, y_min, z_min = np.min(pcd_points, axis=0)
     x_max, y_max, z_max = np.max(pcd_points, axis=0)
+
+    return x_min, x_max, y_min, y_max, z_min, z_max
+
+
+def get_grid(pcd, cell_size):
+    x_min, x_max, y_min, y_max, z_min, z_max = get_limits(pcd)
     y_val = np.mean([y_min, y_max])
 
     points = []
@@ -105,10 +114,9 @@ def fast_global_registration(src_keypts, tgt_keypts, src_desc, tgt_desc, voxel_s
 
 
 def print_registration_result(src_keypts, tgt_keypts, result_ransac, end="\n"):
-    to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
-    to_print += f"No of matches: {len(result_ransac.correspondence_set)}\t"
-    to_print += f"Inlier RMSE: {result_ransac.inlier_rmse}"
-    print(to_print, end=end)
+    print(f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]", end="\t")
+    print(f"No of matches: {len(result_ransac.correspondence_set)}", end="\t")
+    print(f"Inlier RMSE: {result_ransac.inlier_rmse:.4f}", end=end)
 
 
 def create_camera(camera_width, color):
@@ -124,34 +132,46 @@ def create_camera(camera_width, color):
     return line_set
 
 
+def check_limits(tx, ty, tz, x_min, x_max, y_min, y_max, z_min, z_max):
+    return (x_min <= tx <= x_max) and (y_min <= ty <= y_max) and (z_min <= tz <= z_max)
+
+
 def main():
-    cell_size = 2
+    cell_size = 3
+    logging = False
 
-    pcd_file = "data/DatasetV2/Primary/06/lidar_1637299401488642900.pcd"
-    # pcd_file = "data/DatasetV2/Primary/10/lidar_1638353640807327100.pcd"
-    feature_file = "data/FeaturesV1/0.1/lidar_1637299401488642900.npz"
+    logs = pd.DataFrame(columns=[
+        "src_id", "tgt_pcd",
+        "cx", "cy", "cz",
+        "src_keypts", "tgt_keypts",
+        "matches", "rmse",
+        "rx", "ry", "rz",
+        "tx", "ty", "tz"
+    ])
 
-    pcd = open3d.read_point_cloud(pcd_file)
-    pcd = open3d.voxel_down_sample(pcd, 0.03)
+    tgt_pcd_file = "data/DatasetV2/Primary/07/lidar_1637299421190934300.pcd"
+    tgt_file_name = tgt_pcd_file.split('/')[-1]
+    tgt_feature_file = f"data/FeaturesV8/0.05/{tgt_file_name.replace('pcd', 'npz')}"
+
+    pcd = open3d.read_point_cloud(tgt_pcd_file)
+    pcd = open3d.voxel_down_sample(pcd, 0.025)
     pcd.paint_uniform_color(rgb(149, 165, 166))
 
-    points = np.asarray(pcd.points)
-    filter = np.logical_and(points[:, 1] > 1, points[:, 1] < 1.05)
-    x = points[filter][:, 0]
-    y = points[filter][:, 2]
+    x_min, x_max, y_min, y_max, z_min, z_max = get_limits(pcd)
+    y_min = 0
+    y_max = 1.8
 
     grid_points = get_grid(pcd, cell_size)
     grid = make_pcd(grid_points)
 
-    for src_file_name in os.listdir("data/DatasetV2/Secondary/03/"):
-        # src_file = f"data/DatasetV2/Secondary/03/{tgt_file_name}"
-        src_feature_file = os.path.join("data/FeaturesV1/0.1/", src_file_name.replace("pcd", "npz"))
-        highest_matches, highest_p = 0, None
+    for src_file_name in os.listdir("data/DatasetV2/Secondary/04/"):
+        src_feature_file = os.path.join("data/FeaturesV8/0.05/", src_file_name.replace("pcd", "npz"))
+        best_score, best_p = 0, None
         t = None
 
         for p in grid_points:
             src_keypts, src_features, src_scores = get_features(src_feature_file)
-            tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, p, cell_size)
+            tgt_keypts, tgt_features, tgt_scores = get_cell_features(tgt_feature_file, p, cell_size)
 
             if len(tgt_keypts.points) < 2000:
                 continue
@@ -160,19 +180,38 @@ def main():
             tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
 
             result_ransac = registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
-            print_registration_result(src_keypts, tgt_keypts, result_ransac)
+            tx, ty, tz = get_translation_from_transformation(result_ransac.transformation)
+            rx, ry, rz = get_angles_from_transformation(result_ransac.transformation)
 
-            if highest_matches < len(result_ransac.correspondence_set):
-                highest_matches = len(result_ransac.correspondence_set)
-                highest_p = p
+            if logging:
+                print_registration_result(src_keypts, tgt_keypts, result_ransac, end="\t")
+
+                print(f"TX: {tx:.2f} TY: {ty:.2f} TZ: {tz:.2f}", end="\t")
+                print(f"RX: {rx:.2f} RY: {ry:.2f} RZ: {rz:.2f}", end="\n")
+
+                logs = logs.append({
+                    "src_id": src_file_name.split(".")[0], "tgt_pcd": tgt_file_name.split(".")[0],
+                    "cx": p[0], "cy": p[1], "cz": p[2],
+                    "src_keypts": len(src_keypts.points), "tgt_keypts": len(tgt_keypts.points),
+                    "matches": len(result_ransac.correspondence_set), "rmse": result_ransac.inlier_rmse,
+                    "rx": rx, "ry": ry, "rz": rz,
+                    "tx": tx, "ty": ty, "tz": tz
+                }, ignore_index=True)
+
+            else:
+                print_registration_result(src_keypts, tgt_keypts, result_ransac, end="\n")
+
+            if best_score < len(result_ransac.correspondence_set) and check_limits(tx, ty, tz, x_min, x_max, y_min, y_max, z_min, z_max):
+                best_score = len(result_ransac.correspondence_set)
+                best_p = p
                 t = result_ransac.transformation
 
             # src_keypts.transform(result_ransac.transformation)
             # open3d.visualization.draw_geometries([src_keypts, tgt_keypts, grid])
 
-        if highest_p is not None:
+        if best_p is not None:
             src_keypts, src_features, src_scores = get_features(src_feature_file)
-            tgt_keypts, tgt_features, tgt_scores = get_cell_features(feature_file, highest_p, cell_size)
+            tgt_keypts, tgt_features, tgt_scores = get_cell_features(tgt_feature_file, best_p, cell_size)
 
             src_keypts.paint_uniform_color([1, 0.706, 0])
             tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
@@ -183,20 +222,22 @@ def main():
                 src_keypts, pcd, 0.05, t, open3d.registration.TransformationEstimationPointToPoint()
             )
 
-            cp = np.matmul(result.transformation, [[0], [0], [0], [1]])
+            # cp = np.matmul(result.transformation, [[0], [0], [0], [1]])
 
-            plt.scatter(x, y, c="green")
-            plt.scatter([cp[0]], cp[2], c="red")
-            plt.xlim(-6, 6)
-            plt.ylim(-6, 6)
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.draw()
-            plt.show()
+            # plt.scatter(x, y, c="green")
+            # plt.scatter([cp[0]], cp[2], c="red")
+            # plt.xlim(-6, 6)
+            # plt.ylim(-6, 6)
+            # plt.gca().set_aspect('equal', adjustable='box')
+            # plt.draw()
+            # plt.show()
 
             src_keypts.transform(result.transformation)
-            # src_keypts.transform(result.transformation)
             src_camera.transform(result.transformation)
             open3d.visualization.draw_geometries([src_keypts, pcd, src_camera, grid])
+
+    if logging:
+        logs.to_csv(f"data/Logs/{tgt_file_name.replace('pcd', 'csv')}", index=False)
 
 
 if __name__ == '__main__':
