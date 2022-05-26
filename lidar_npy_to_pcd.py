@@ -26,6 +26,8 @@ def main():
         if i != "Sequence":
             continue
         for j in os.listdir(os.path.join(dataset_dir, i)):
+            if os.path.exists(os.path.join(out_dir, i, j)): continue    
+        
             npy_files = glob.glob(os.path.join(dataset_dir, i, j, "lidar_*.npy"))
             for file in tqdm.tqdm(npy_files):
                 npy_pcd = np.load(file)

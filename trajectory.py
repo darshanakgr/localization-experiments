@@ -5,7 +5,7 @@ import numpy as np
 from utils.pcd import get_angles_from_transformation
 
 rotation = [90, 90, -90]
-translation = [0, 1, 0, 0]
+translation = [0, 1, 0, 1]
 
 
 def rotate_transformation_matrix(t, rx, ry, rz):
