@@ -17,7 +17,7 @@ pipeline = rs.pipeline()
 config = rs.config()
 config.enable_stream(rs.stream.depth, depth_width, depth_height, rs.format.z16, 30)
 config.enable_stream(rs.stream.color, rgb_width, rgb_height, rs.format.bgr8, 30)
-config.enable_stream(rs.stream.accel)
+
 
 # Start streaming
 pipeline.start(config)
@@ -47,8 +47,6 @@ try:
 
         if not depth_frame or not color_frame:
             continue
-
-
 
         # Convert images to numpy arrays
         depth_image = np.asanyarray(depth_frame.get_data())

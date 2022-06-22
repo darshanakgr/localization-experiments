@@ -49,10 +49,7 @@ def draw_registration_result(source, target, transformation):
 #         open3d.RANSACConvergenceCriteria(4000000, 500))
 #     return result
 
-def execute_global_registration(src_keypts, tgt_keypts, src_desc, tgt_desc, voxel_size):
-    distance_threshold = 0.05
-    # iterations = int(len(src_keypts.points) * len(tgt_keypts.points) * 1.2)
-    # print(f"Iterations: {iterations}\t", end="")
+def execute_global_registration(src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold):
     result = open3d.registration_ransac_based_on_feature_matching(
         src_keypts, tgt_keypts, src_desc, tgt_desc, distance_threshold,
         open3d.TransformationEstimationPointToPoint(False),

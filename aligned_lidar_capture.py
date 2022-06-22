@@ -1,0 +1,72 @@
+import pyrealsense2 as rs
+import numpy as np
+import cv2
+import os
+
+from time import time_ns
+
+out_dir = "data/DatasetV3/Seq01"
+
+if not os.path.exists(out_dir): os.makedirs(out_dir)
+
+pipeline = rs.pipeline()
+
+config = rs.config()
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+profile = pipeline.start(config)
+
+# depth_sensor = profile.get_device().first_depth_sensor()
+# depth_scale = depth_sensor.get_depth_scale()
+
+# clipping_distance_in_meters = 1 #1 meter
+# clipping_distance = clipping_distance_in_meters / depth_scale
+
+
+align_to = rs.stream.color
+align = rs.align(align_to)
+
+count = 0
+
+try:
+    while True:
+        frames = pipeline.wait_for_frames()
+
+        aligned_frames = align.process(frames)
+        aligned_depth_frame = aligned_frames.get_depth_frame() # aligned_depth_frame is a 640x480 depth image
+
+        aligned_color_frame = aligned_frames.get_color_frame()
+
+        if not aligned_depth_frame or not aligned_color_frame:
+            continue
+
+        depth_image = np.asanyarray(aligned_depth_frame.get_data())
+        color_image = np.asanyarray(aligned_color_frame.get_data())
+        
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+
+        images = np.hstack((color_image, depth_colormap))
+
+        cv2.namedWindow("Aligned RGB & Depth", cv2.WINDOW_AUTOSIZE)
+        
+        cv2.imshow("Aligned RGB & Depth", images)
+
+        key = cv2.waitKey(1)
+        
+        if key & 0xFF == ord('q') or key == 27:
+            cv2.destroyAllWindows()
+            break
+        
+        if key == ord("s"):
+            # Saving images
+            timestamp = time_ns()
+            
+            cv2.imwrite(f"{out_dir}/frame-{count:06d}.color.png", color_image)
+            cv2.imwrite(f"{out_dir}/frame-{count:06d}.depth.png", depth_image)
+            
+            count += 1
+        
+        
+finally:
+    pipeline.stop()
