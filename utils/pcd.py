@@ -68,14 +68,26 @@ def read_pcd_file(file_path, voxel_size=0.03):
     return pcd
 
 
-def read_features_file(file_path):
+def read_features_file(file_path, random_points=0):
     data = np.load(file_path)
-    features = open3d.registration.Feature()
-    features.data = data["features"].T
-    keypts = open3d.PointCloud()
-    keypts.points = open3d.Vector3dVector(data["keypts"])
     scores = data["scores"]
-    return keypts, features, scores
+    
+    if random_points > 0:
+        indices = np.random.choice(data["features"].shape[0], random_points, replace=False)
+        features = open3d.registration.Feature()
+        features.data = data["features"][indices, :].T
+        keypts = open3d.PointCloud()
+        keypts.points = open3d.Vector3dVector(data["keypts"][indices, :])
+        return keypts, features, scores
+    else:
+        features = open3d.registration.Feature()
+        features.data = data["features"].T
+        keypts = open3d.PointCloud()
+        keypts.points = open3d.Vector3dVector(data["keypts"])
+        return keypts, features, scores
+
+
+
 
 
 def read_pcd_and_features(file_path, feature_dir, voxel_size, random_points=0):

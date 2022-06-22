@@ -5,7 +5,7 @@ import os
 
 from time import time_ns
 
-out_dir = "data/DatasetV3/Seq01"
+out_dir = "data/DatasetV3/larc-kitchen/seq-01"
 
 if not os.path.exists(out_dir): os.makedirs(out_dir)
 
@@ -17,17 +17,22 @@ config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
 profile = pipeline.start(config)
 
-# depth_sensor = profile.get_device().first_depth_sensor()
-# depth_scale = depth_sensor.get_depth_scale()
+depth_sensor = profile.get_device().first_depth_sensor()
+depth_scale = depth_sensor.get_depth_scale()
+
+# depth_profile = rs.video_stream_profile(profile.get_stream(rs.stream.depth))
+# depth_intrinsics = depth_profile.get_intrinsics()
+
+# print(depth_intrinsics.width, depth_intrinsics.height, depth_intrinsics.fx, depth_intrinsics.fy, depth_intrinsics.ppx, depth_intrinsics.ppy)
 
 # clipping_distance_in_meters = 1 #1 meter
 # clipping_distance = clipping_distance_in_meters / depth_scale
-
 
 align_to = rs.stream.color
 align = rs.align(align_to)
 
 count = 0
+time_t = time_ns()
 
 try:
     while True:
@@ -51,6 +56,14 @@ try:
         cv2.namedWindow("Aligned RGB & Depth", cv2.WINDOW_AUTOSIZE)
         
         cv2.imshow("Aligned RGB & Depth", images)
+        
+        if time_ns() - time_t > 1000000000:
+            time_t = time_ns()
+            
+            cv2.imwrite(f"{out_dir}/frame-{count:06d}.color.png", color_image)
+            cv2.imwrite(f"{out_dir}/frame-{count:06d}.depth.png", depth_image)
+            
+            count += 1
 
         key = cv2.waitKey(1)
         
@@ -60,13 +73,10 @@ try:
         
         if key == ord("s"):
             # Saving images
-            timestamp = time_ns()
-            
             cv2.imwrite(f"{out_dir}/frame-{count:06d}.color.png", color_image)
             cv2.imwrite(f"{out_dir}/frame-{count:06d}.depth.png", depth_image)
             
             count += 1
-        
         
 finally:
     pipeline.stop()

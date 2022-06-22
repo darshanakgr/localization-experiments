@@ -34,23 +34,36 @@ def main():
     #     # Plot point clouds after registration
     #     pcd.draw_registration_result(src_keypts, tgt_keypts, result_ransac.transformation)
 
+    # src_keypts, src_features, src_scores = pcd.read_features_file("data/samples4/rgbgeo/frame-000005.npz", random_points=25000)
+    # tgt_keypts, tgt_features, tgt_scores = pcd.read_features_file("data/samples4/rgbgeo/frame-000006.npz", random_points=25000)
     
-    src_keypts, src_features, src_scores = pcd.read_features_file("data/samples2/frame-000200.npz")
-    tgt_keypts, tgt_features, tgt_scores = pcd.read_features_file("data/samples3/frame-000150.npz")
+    # result_ransac = pcd.execute_global_registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
+    # to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
+    # to_print += f"No of matches: {len(result_ransac.correspondence_set)}"
+    # print(to_print)
     
-    result_ransac = pcd.execute_global_registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
-    to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
-    to_print += f"No of matches: {len(result_ransac.correspondence_set)}"
-    print(to_print)
+    # src_keypts.paint_uniform_color([1, 0.706, 0])
+    # tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
     
-    src_keypts.paint_uniform_color([1, 0.706, 0])
-    tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
+    # src_keypts.transform(result_ransac.transformation)
     
     # open3d.visualization.draw_geometries([src_keypts, tgt_keypts])
     
-    src_keypts.transform(result_ransac.transformation)
-    
-    open3d.visualization.draw_geometries([src_keypts, tgt_keypts])
+    for i in range(17):
+        src_keypts, src_features, src_scores = pcd.read_features_file(f"data/samples4/rgbgeo/frame-{i:06d}.npz")
+        tgt_keypts, tgt_features, tgt_scores = pcd.read_features_file(f"data/samples4/rgbgeo/frame-{(i + 1):06d}.npz")
+        
+        result_ransac = pcd.execute_global_registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
+        to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
+        to_print += f"No of matches: {len(result_ransac.correspondence_set)}"
+        print(to_print)
+        
+        src_keypts.paint_uniform_color([1, 0.706, 0])
+        tgt_keypts.paint_uniform_color([0, 0.651, 0.929])
+        
+        src_keypts.transform(result_ransac.transformation)
+        
+        open3d.visualization.draw_geometries([src_keypts, tgt_keypts])
 
 if __name__ == '__main__':
     main()
