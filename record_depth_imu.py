@@ -119,16 +119,13 @@ class LiDARCamera(Thread):
                 # View depth map
                 cv2.imshow("LiDAR Viewer", depth_colormap)
 
+                # Saving images
+                timestamp = time_ns()
+                np.save("%s/lidar_%s.npy" % (self.__out_dir, timestamp), vertices)
+                cv2.imwrite("%s/rgb_image_%s.png" % (self.__out_dir, timestamp), color_image)
+                
                 # To get key presses
                 key = cv2.waitKey(1)
-
-                if key == ord("s"):
-                    # Saving images
-                    timestamp = time_ns()
-                    np.save("%s/lidar_%s.npy" % (self.__out_dir, timestamp), vertices)
-                    np.save("%s/depth_map_%s.npy" % (self.__out_dir, timestamp), depth_image)
-                    cv2.imwrite("%s/rgb_image_%s.png" % (self.__out_dir, timestamp), color_image)
-                    cv2.imwrite("%s/depth_map_%s.png" % (self.__out_dir, timestamp), depth_colormap)
 
                 if key in (27, ord("q")) or cv2.getWindowProperty("LiDAR Viewer", cv2.WND_PROP_AUTOSIZE) < 0:
                     self.__gyro_stream.terminate()
@@ -142,4 +139,4 @@ class LiDARCamera(Thread):
 
 
 if __name__ == '__main__':
-    LiDARCamera(out_dir="data/DatasetV1/Sequence", sequence=5).start()
+    LiDARCamera(out_dir="data/DatasetV1/Sequence", sequence=9).start()

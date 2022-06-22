@@ -4,3 +4,5 @@ results
 test_data
 .vscode
 utils/__pycache__
+dataset
+venv
