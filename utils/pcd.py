@@ -68,7 +68,7 @@ def read_pcd_file(file_path, voxel_size=0.03):
     return pcd
 
 
-def read_features_file(file_path, random_points=0):
+def read_features_file(file_path, random_points=0, threshold=0):
     data = np.load(file_path)
     scores = data["scores"]
     
@@ -79,14 +79,19 @@ def read_features_file(file_path, random_points=0):
         keypts = open3d.PointCloud()
         keypts.points = open3d.Vector3dVector(data["keypts"][indices, :])
         return keypts, features, scores
+    elif threshold > 0:
+        indices = np.argwhere(scores > threshold).squeeze()
+        features = open3d.registration.Feature()
+        features.data = data["features"][indices, :].T
+        keypts = open3d.PointCloud()
+        keypts.points = open3d.Vector3dVector(data["keypts"][indices, :])
+        return keypts, features, scores[indices]
     else:
         features = open3d.registration.Feature()
         features.data = data["features"].T
         keypts = open3d.PointCloud()
         keypts.points = open3d.Vector3dVector(data["keypts"])
         return keypts, features, scores
-
-
 
 
 

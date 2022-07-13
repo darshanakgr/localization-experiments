@@ -5,7 +5,7 @@ import os
 
 from time import time_ns
 
-out_dir = "data/DatasetV3/larc-kitchen/seq-01"
+out_dir = "data/DatasetV3/sample_data"
 
 if not os.path.exists(out_dir): os.makedirs(out_dir)
 
@@ -31,6 +31,10 @@ depth_scale = depth_sensor.get_depth_scale()
 align_to = rs.stream.color
 align = rs.align(align_to)
 
+# Processing blocks
+pc = rs.pointcloud()
+colorizer = rs.colorizer()
+
 count = 0
 time_t = time_ns()
 
@@ -49,6 +53,15 @@ try:
         depth_image = np.asanyarray(aligned_depth_frame.get_data())
         color_image = np.asanyarray(aligned_color_frame.get_data())
         
+        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+        # Convert depth frame to a point cloud
+        points = pc.calculate(aligned_depth_frame)
+        pc.map_to(aligned_color_frame)
+
+        # Point cloud data to arrays
+        vertices = np.asanyarray(points.get_vertices()).view(np.float32).reshape(-1, 3)  # xyz
+        
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
         images = np.hstack((color_image, depth_colormap))
@@ -62,6 +75,7 @@ try:
             
             cv2.imwrite(f"{out_dir}/frame-{count:06d}.color.png", color_image)
             cv2.imwrite(f"{out_dir}/frame-{count:06d}.depth.png", depth_image)
+            np.save(f"{out_dir}/frame-{count:06d}.pcd.npy", vertices)
             
             count += 1
 

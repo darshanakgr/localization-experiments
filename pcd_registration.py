@@ -49,9 +49,17 @@ def main():
     
     # open3d.visualization.draw_geometries([src_keypts, tgt_keypts])
     
-    for i in range(17):
-        src_keypts, src_features, src_scores = pcd.read_features_file(f"data/samples4/rgbgeo/frame-{i:06d}.npz")
-        tgt_keypts, tgt_features, tgt_scores = pcd.read_features_file(f"data/samples4/rgbgeo/frame-{(i + 1):06d}.npz")
+    feature_dir = "D:/Projects/Research/LARCDataset/features/larc-kitchen"
+    
+    for i in range(10):
+        src_keypts, src_features, src_scores = pcd.read_features_file(f"{feature_dir}/deconvbndmwon_tl/frame-{i:06d}.npz")
+        tgt_keypts, tgt_features, tgt_scores = pcd.read_features_file(f"{feature_dir}/deconvbndmwon_tl/frame-{(i + 1):06d}.npz")
+        
+        # plt.subplot(1, 2, 1)
+        # plt.hist(src_scores)
+        # plt.subplot(1, 2, 2)
+        # plt.hist(tgt_scores)
+        # plt.show()
         
         result_ransac = pcd.execute_global_registration(src_keypts, tgt_keypts, src_features, tgt_features, 0.05)
         to_print = f"Keypts: [{len(src_keypts.points)}, {len(tgt_keypts.points)}]\t"
